@@ -298,6 +298,11 @@ class GazeboRosInterfacePlugin : public WorldPlugin {
       const mav_msgs::ActuatorsConstPtr& ros_actuators_msg_ptr,
       gazebo::transport::PublisherPtr gz_publisher_ptr);
 
+  // FLOAT32
+  void RosFloat32MsgCallback(
+    const std_msgs::Float32ConstPtr& ros_float_32_msg_ptr, 
+    gazebo::transport::PublisherPtr gz_publisher_ptr);
+
   // COMMAND MOTOR SPEED (this is the same as ACTUATORS!, merge???)
   void RosCommandMotorSpeedMsgCallback(
       const mav_msgs::ActuatorsConstPtr& ros_command_motor_speed_msg_ptr,

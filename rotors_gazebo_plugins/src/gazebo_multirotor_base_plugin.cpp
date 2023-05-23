@@ -26,6 +26,7 @@
 #include <ctime>
 
 #include "ConnectGazeboToRosTopic.pb.h"
+#include "ConnectRosToGazeboTopic.pb.h"
 
 namespace gazebo {
 
@@ -123,6 +124,9 @@ void GazeboMultirotorBasePlugin::OnUpdate(const common::UpdateInfo& _info) {
     joint_state_msg_.add_position(m->second->Position(0));
   }
 
+  base_mass_msg_.set_data(link_->GetInertial()->Mass());
+
+  base_mass_pub_->Publish(base_mass_msg_);
   joint_state_pub_->Publish(joint_state_msg_);
   motor_pub_->Publish(actuators_msg_);
 }
@@ -132,8 +136,13 @@ void GazeboMultirotorBasePlugin::CreatePubsAndSubs() {
   gazebo::transport::PublisherPtr connect_gazebo_to_ros_topic_pub =
       node_handle_->Advertise<gz_std_msgs::ConnectGazeboToRosTopic>(
           "~/" + kConnectGazeboToRosSubtopic, 1);
-
   gz_std_msgs::ConnectGazeboToRosTopic connect_gazebo_to_ros_topic_msg;
+
+  // Create temporary "ConnectRosToGazeboTopic" publisher and message
+  gazebo::transport::PublisherPtr gz_connect_ros_to_gazebo_topic_pub =
+      node_handle_->Advertise<gz_std_msgs::ConnectRosToGazeboTopic>(
+          "~/" + kConnectRosToGazeboSubtopic, 1);
+  gz_std_msgs::ConnectRosToGazeboTopic connect_ros_to_gazebo_topic_msg;
 
   // ============================================ //
   // =========== ACTUATORS MSG SETUP ============ //
@@ -166,6 +175,46 @@ void GazeboMultirotorBasePlugin::CreatePubsAndSubs() {
       gz_std_msgs::ConnectGazeboToRosTopic::JOINT_STATE);
   connect_gazebo_to_ros_topic_pub->Publish(connect_gazebo_to_ros_topic_msg,
                                            true);
+
+  // ============================================ //
+  // =========== BASE MASS MSG SETUP =========== //
+  // ============================================ //
+  base_mass_pub_ = node_handle_->Advertise<gz_std_msgs::Float32>(
+      "~/" + namespace_ + "/" + base_mass_pub_topic_, 1);
+
+  // connect_gazebo_to_ros_topic_msg.set_gazebo_namespace(namespace_);
+  connect_gazebo_to_ros_topic_msg.set_gazebo_topic("~/" + namespace_ + "/" +
+                                                   base_mass_pub_topic_);
+  connect_gazebo_to_ros_topic_msg.set_ros_topic(namespace_ + "/" +
+                                                base_mass_pub_topic_);
+  connect_gazebo_to_ros_topic_msg.set_msgtype(
+      gz_std_msgs::ConnectGazeboToRosTopic::FLOAT_32);
+  connect_gazebo_to_ros_topic_pub->Publish(connect_gazebo_to_ros_topic_msg,
+                                           true);
+
+  // ========================================================== //
+  // ========== CHANGE MASS MSG SETUP (ROS->GAZEBO) =========== //
+  // ========================================================== //
+  change_mass_sub_ = node_handle_->Subscribe(
+      "~/" + namespace_ + "/" + change_mass_sub_topic_, 
+      &GazeboMultirotorBasePlugin::ChangeMassCallback, this);
+
+  connect_ros_to_gazebo_topic_msg.set_ros_topic(
+    namespace_ + "/" + change_mass_sub_topic_);
+  connect_ros_to_gazebo_topic_msg.set_gazebo_topic(
+    "~/" + namespace_ + "/" + change_mass_sub_topic_);
+  connect_ros_to_gazebo_topic_msg.set_msgtype(
+      gz_std_msgs::ConnectRosToGazeboTopic::FLOAT_32);
+  gz_connect_ros_to_gazebo_topic_pub->Publish(
+  connect_ros_to_gazebo_topic_msg, true);
+}
+
+void GazeboMultirotorBasePlugin::ChangeMassCallback(GzChangeMassMsgPtr& change_mass_msg) {
+  if (kPrintOnMsgCallback) {
+    gzdbg << __FUNCTION__ << "() called." << std::endl;
+  }
+
+  link_->GetInertial()->SetMass(change_mass_msg->data());
 }
 
 GZ_REGISTER_MODEL_PLUGIN(GazeboMultirotorBasePlugin);

@@ -303,6 +303,24 @@ void GazeboRosInterfacePlugin::GzConnectRosToGazeboTopicMsgCallback(
 
       break;
     }
+    case gz_std_msgs::ConnectRosToGazeboTopic::FLOAT_32: {
+      gazebo::transport::PublisherPtr gz_publisher_ptr =
+          gz_node_handle_->Advertise<gz_std_msgs::Float32>(
+              gz_connect_ros_to_gazebo_topic_msg->gazebo_topic(), 1);
+
+      // Create ROS subscriber.
+      ros::Subscriber ros_subscriber =
+          ros_node_handle_->subscribe<std_msgs::Float32>(
+              gz_connect_ros_to_gazebo_topic_msg->ros_topic(), 1,
+              boost::bind(&GazeboRosInterfacePlugin::RosFloat32MsgCallback,
+                          this, _1, gz_publisher_ptr));
+
+      // Save reference to the ROS subscriber so callback will continue to be
+      // called.
+      ros_subscribers.push_back(ros_subscriber);
+
+      break;
+    }
     case gz_std_msgs::ConnectRosToGazeboTopic::COMMAND_MOTOR_SPEED: {
       gazebo::transport::PublisherPtr gz_publisher_ptr =
           gz_node_handle_->Advertise<gz_mav_msgs::CommandMotorSpeed>(
@@ -961,6 +979,19 @@ void GazeboRosInterfacePlugin::RosActuatorsMsgCallback(
 
   // Publish to Gazebo
   gz_publisher_ptr->Publish(gz_actuators_msg);
+}
+
+void GazeboRosInterfacePlugin::RosFloat32MsgCallback(
+    const std_msgs::Float32ConstPtr& ros_float_32_msg_ptr, 
+    gazebo::transport::PublisherPtr gz_publisher_ptr) {
+  // Convert ROS message to Gazebo message
+  
+  gz_std_msgs::Float32 gz_float_32_msg;
+
+  gz_float_32_msg.set_data(ros_float_32_msg_ptr->data);
+
+  // Publish to ROS
+  gz_publisher_ptr->Publish(gz_float_32_msg);
 }
 
 void GazeboRosInterfacePlugin::RosCommandMotorSpeedMsgCallback(

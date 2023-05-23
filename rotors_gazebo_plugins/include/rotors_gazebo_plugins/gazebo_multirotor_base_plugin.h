@@ -34,15 +34,20 @@
 
 #include "Actuators.pb.h"
 #include "JointState.pb.h"
+#include "Float32.pb.h"
 
 #include "rotors_gazebo_plugins/common.h"
 
 namespace gazebo {
 
+typedef const boost::shared_ptr<const gz_std_msgs::Float32> GzChangeMassMsgPtr;
+
 // Default values
 static const std::string kDefaultLinkName = "base_link";
 static const std::string kDefaultFrameId = "base_link";
 static const std::string kDefaultJointStatePubTopic = "joint_states";
+static const std::string kDefaultBaseMassPubTopic = "base_mass";
+static const std::string kDefaultChangeMassSubTopic = "mass_change";
 
 /// \brief This plugin publishes the motor speeds of your multirotor model.
 class GazeboMultirotorBasePlugin : public ModelPlugin {
@@ -53,6 +58,8 @@ class GazeboMultirotorBasePlugin : public ModelPlugin {
       : ModelPlugin(),
         namespace_(kDefaultNamespace),
         joint_state_pub_topic_(kDefaultJointStatePubTopic),
+        base_mass_pub_topic_(kDefaultBaseMassPubTopic),
+        change_mass_sub_topic_(kDefaultChangeMassSubTopic),
         actuators_pub_topic_(mav_msgs::default_topics::MOTOR_MEASUREMENT),
         link_name_(kDefaultLinkName),
         frame_id_(kDefaultFrameId),
@@ -98,6 +105,8 @@ class GazeboMultirotorBasePlugin : public ModelPlugin {
 
   std::string namespace_;
   std::string joint_state_pub_topic_;
+  std::string base_mass_pub_topic_;
+  std::string change_mass_sub_topic_;
   std::string actuators_pub_topic_;
   std::string link_name_;
   std::string frame_id_;
@@ -113,7 +122,16 @@ class GazeboMultirotorBasePlugin : public ModelPlugin {
   /// \details    Re-used message object, defined here to reduce dynamic memory allocation.
   gz_sensor_msgs::JointState joint_state_msg_;
 
+  gazebo::transport::PublisherPtr base_mass_pub_;
+
+  /// \details    Re-used message object, defined here to reduce dynamic memory allocation.
+  gz_std_msgs::Float32 base_mass_msg_;
+
+  gazebo::transport::SubscriberPtr change_mass_sub_;
+
   gazebo::transport::NodePtr node_handle_;
+
+  void ChangeMassCallback(GzChangeMassMsgPtr& change_mass_msg);
 };
 
 } // namespace gazebo
