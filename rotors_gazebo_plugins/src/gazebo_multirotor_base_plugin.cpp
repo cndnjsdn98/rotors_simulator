@@ -215,6 +215,7 @@ void GazeboMultirotorBasePlugin::ChangeMassCallback(GzChangeMassMsgPtr& change_m
   }
 
   link_->GetInertial()->SetMass(change_mass_msg->data());
+  link_->UpdateMass();
 }
 
 GZ_REGISTER_MODEL_PLUGIN(GazeboMultirotorBasePlugin);
